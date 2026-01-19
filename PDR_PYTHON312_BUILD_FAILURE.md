@@ -97,8 +97,14 @@ After the fix, `pyconfig.h` now contains:
 - [x] `pyconfig.h` contains `#pragma comment(lib,"python312.lib")`
 - [x] `Boost.Build.cs` contains `"python312"` (not `"python311"`)
 - [x] `boost_python312-mt-x64.dll` exists and depends on `python312.dll`
-- [ ] UE project builds successfully (pending user test)
+- [x] UE project builds successfully (verified 2026-01-19)
 - [x] Python scripts run in Editor
+
+**Note:** After updating headers, you MUST clean the PythonScriptPlugin intermediate files:
+```
+Engine\Plugins\Experimental\PythonScriptPlugin\Intermediate\Build\Win64\
+```
+Otherwise stale object files will still contain `#pragma comment(lib,"python311.lib")`.
 
 ---
 

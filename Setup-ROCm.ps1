@@ -322,11 +322,21 @@ if (Test-Path $BoostPython312) {
     Write-Host "  [WARN] boost_python312-mt-x64.dll missing (may need to build from source)" -ForegroundColor Yellow
 }
 
+# Step 10: Clean Python plugin intermediate files (CRITICAL - required after header update)
+Write-Host "`n[CLEANUP] Removing stale Python plugin object files..." -ForegroundColor Yellow
+$PythonPluginIntermediate = Join-Path $UEPath "Engine\Plugins\Experimental\PythonScriptPlugin\Intermediate\Build\Win64"
+if (Test-Path $PythonPluginIntermediate) {
+    Remove-Item $PythonPluginIntermediate -Recurse -Force
+    Write-Host "      Removed PythonScriptPlugin intermediate files" -ForegroundColor Green
+    Write-Host "      This forces recompilation with Python 3.12 headers" -ForegroundColor Gray
+}
+
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "Setup Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "`nNext steps:" -ForegroundColor White
 Write-Host "1. Install AMD Software: PyTorch on Windows Edition 7.1.1 driver" -ForegroundColor Gray
 Write-Host "   https://www.amd.com/en/support" -ForegroundColor Gray
-Write-Host "2. Rebuild Unreal Engine: GenerateProjectFiles.bat && Build.bat" -ForegroundColor Gray
+Write-Host "2. Rebuild Unreal Engine (clean build recommended):" -ForegroundColor Gray
+Write-Host "   Build.bat UnrealEditor Win64 Development" -ForegroundColor Gray
 Write-Host "3. Test GPU acceleration in your Python scripts" -ForegroundColor Gray
