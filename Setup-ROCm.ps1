@@ -69,11 +69,20 @@ Write-Host "`n[3/6] Installing Python 3.12..." -ForegroundColor Yellow
 Remove-Item "$PythonDir\*" -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive -Path $PythonZip -DestinationPath $PythonDir -Force
 
+# IMPORTANT: Extract stdlib from python312.zip to Lib folder
+# UE's PythonScriptPlugin expects stdlib in Lib/, not in a .zip file
+Write-Host "      Extracting standard library for UE compatibility..." -ForegroundColor Gray
+$StdlibZip = Join-Path $PythonDir "python312.zip"
+$LibDir = Join-Path $PythonDir "Lib"
+New-Item -ItemType Directory -Path $LibDir -Force | Out-Null
+Expand-Archive -Path $StdlibZip -DestinationPath $LibDir -Force
+
 # Configure python312._pth for pip/site-packages
 $PthFile = Join-Path $PythonDir "python312._pth"
 @"
 python312.zip
 .
+Lib
 Lib\site-packages
 
 # Enable site-packages for pip
