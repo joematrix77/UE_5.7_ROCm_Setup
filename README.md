@@ -35,8 +35,8 @@ This setup script upgrades UE 5.7's Python from 3.11 to 3.12 and installs:
 ### Step 1: Clone This Repository
 
 ```bash
-git clone https://github.com/joematrix77/UnrealEngine_5_7_ROCm.git
-cd UnrealEngine_5_7_ROCm
+git clone https://github.com/joematrix77/UE_5.7_ROCm_Setup.git
+cd UE_5.7_ROCm_Setup
 ```
 
 ### Step 2: Run the Setup Script
