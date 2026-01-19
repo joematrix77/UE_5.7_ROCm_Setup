@@ -94,19 +94,34 @@ New-Item -ItemType Directory -Path (Join-Path $PythonDir "Lib\site-packages") -F
 
 Write-Host "      Python 3.12.8 installed" -ForegroundColor Green
 
-# Step 4: Patch UnrealUSDWrapper.Build.cs for Python 3.12
-Write-Host "`n[4/7] Patching USDCore module for Python 3.12..." -ForegroundColor Yellow
+# Step 4: Patch Engine Build.cs files for Python 3.12
+Write-Host "`n[4/7] Patching Engine modules for Python 3.12..." -ForegroundColor Yellow
+
+# Patch Python3.Build.cs (core Python module)
+$Python3BuildCs = Join-Path $UEPath "Engine\Source\ThirdParty\Python3\Python3.Build.cs"
+if (Test-Path $Python3BuildCs) {
+    $content = Get-Content $Python3BuildCs -Raw
+    if ($content -match "python311") {
+        $newContent = $content -replace 'python311', 'python312' -replace 'python3\.11', 'python3.12' -replace 'Python311', 'Python312'
+        Set-Content -Path $Python3BuildCs -Value $newContent -NoNewline
+        Write-Host "      Patched Python3.Build.cs for Python 3.12" -ForegroundColor Green
+    } elseif ($content -match "python312") {
+        Write-Host "      Python3.Build.cs already patched" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "      [WARN] Python3.Build.cs not found" -ForegroundColor Yellow
+}
+
+# Patch UnrealUSDWrapper.Build.cs (USD plugin)
 $USDWrapperBuildCs = Join-Path $UEPath "Engine\Plugins\Runtime\USDCore\Source\UnrealUSDWrapper\UnrealUSDWrapper.Build.cs"
 if (Test-Path $USDWrapperBuildCs) {
     $content = Get-Content $USDWrapperBuildCs -Raw
     if ($content -match "python311\.dll") {
         $newContent = $content -replace 'python311\.dll', 'python312.dll'
         Set-Content -Path $USDWrapperBuildCs -Value $newContent -NoNewline
-        Write-Host "      Patched python311.dll -> python312.dll" -ForegroundColor Green
+        Write-Host "      Patched UnrealUSDWrapper.Build.cs for Python 3.12" -ForegroundColor Green
     } elseif ($content -match "python312\.dll") {
-        Write-Host "      Already patched for Python 3.12" -ForegroundColor Gray
-    } else {
-        Write-Host "      [WARN] Could not find python DLL reference in Build.cs" -ForegroundColor Yellow
+        Write-Host "      UnrealUSDWrapper.Build.cs already patched" -ForegroundColor Gray
     }
 } else {
     Write-Host "      [WARN] UnrealUSDWrapper.Build.cs not found - USD plugin may not be installed" -ForegroundColor Yellow
