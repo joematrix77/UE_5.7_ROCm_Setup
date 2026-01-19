@@ -94,16 +94,34 @@ New-Item -ItemType Directory -Path (Join-Path $PythonDir "Lib\site-packages") -F
 
 Write-Host "      Python 3.12.8 installed" -ForegroundColor Green
 
-# Step 4: Install pip
-Write-Host "`n[4/6] Installing pip..." -ForegroundColor Yellow
+# Step 4: Patch UnrealUSDWrapper.Build.cs for Python 3.12
+Write-Host "`n[4/7] Patching USDCore module for Python 3.12..." -ForegroundColor Yellow
+$USDWrapperBuildCs = Join-Path $UEPath "Engine\Plugins\Runtime\USDCore\Source\UnrealUSDWrapper\UnrealUSDWrapper.Build.cs"
+if (Test-Path $USDWrapperBuildCs) {
+    $content = Get-Content $USDWrapperBuildCs -Raw
+    if ($content -match "python311\.dll") {
+        $newContent = $content -replace 'python311\.dll', 'python312.dll'
+        Set-Content -Path $USDWrapperBuildCs -Value $newContent -NoNewline
+        Write-Host "      Patched python311.dll -> python312.dll" -ForegroundColor Green
+    } elseif ($content -match "python312\.dll") {
+        Write-Host "      Already patched for Python 3.12" -ForegroundColor Gray
+    } else {
+        Write-Host "      [WARN] Could not find python DLL reference in Build.cs" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "      [WARN] UnrealUSDWrapper.Build.cs not found - USD plugin may not be installed" -ForegroundColor Yellow
+}
+
+# Step 5: Install pip
+Write-Host "`n[5/7] Installing pip..." -ForegroundColor Yellow
 $GetPip = Join-Path $env:TEMP "get-pip.py"
 Invoke-WebRequest -Uri "https://bootstrap.pypa.io/get-pip.py" -OutFile $GetPip -UseBasicParsing
 $Python = Join-Path $PythonDir "python.exe"
 & $Python $GetPip --no-warn-script-location 2>&1 | Out-Null
 Write-Host "      pip installed" -ForegroundColor Green
 
-# Step 5: Install ROCm PyTorch
-Write-Host "`n[5/6] Installing PyTorch with ROCm (this may take a while)..." -ForegroundColor Yellow
+# Step 6: Install ROCm PyTorch
+Write-Host "`n[6/7] Installing PyTorch with ROCm (this may take a while)..." -ForegroundColor Yellow
 $RocmRepo = "https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1"
 
 # Install wheels without dependencies first
@@ -129,8 +147,8 @@ Write-Host "      Installing dependencies..." -ForegroundColor Gray
 
 Write-Host "      PyTorch 2.9.0 + ROCm installed" -ForegroundColor Green
 
-# Step 6: Install ML packages
-Write-Host "`n[6/6] Installing ML packages (transformers, ultralytics)..." -ForegroundColor Yellow
+# Step 7: Install ML packages
+Write-Host "`n[7/7] Installing ML packages (transformers, ultralytics)..." -ForegroundColor Yellow
 & $Python -m pip install transformers ultralytics huggingface-hub 2>&1 | Out-Null
 Write-Host "      ML packages installed" -ForegroundColor Green
 
