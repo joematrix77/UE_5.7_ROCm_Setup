@@ -1,4 +1,4 @@
-# PDR: Python 3.12 Build Failure Analysis
+# Python 3.12 Build Failure Analysis
 
 **Date:** 2026-01-19
 **Author:** Joe Castro
@@ -142,4 +142,4 @@ The fixed `Setup-ROCm.ps1` now has 9 steps:
 
 ---
 
-*PDR Closed: 2026-01-19*
+Closed: 2026-01-19*
