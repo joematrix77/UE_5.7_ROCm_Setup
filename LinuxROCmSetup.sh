@@ -25,10 +25,8 @@ mkdir -p "$UE_ROOT/Engine/Source/ThirdParty/Python3/Linux/include"
 mkdir -p "$UE_ROOT/Engine/Source/ThirdParty/Boost/Deploy/boost-1.85.0/Unix/x86_64-unknown-linux-gnu/lib"
 
 # 3. Create Library & Header Symlinks (Port of your .ps1 logic)
-echo "[3/4] Overwriting UE ThirdParty links with Python $PYTHON_VER..."
-
-# Link Python Static Lib (Found in config directory)
-sudo ln -sf /usr/lib/python${PYTHON_VER}/config-${PYTHON_VER}-x86_64-linux-gnu/libpython${PYTHON_VER}.a \
+echo "Linking SHARED Python library to prevent -fPIC errors..."
+sudo ln -sf /usr/lib/x86_64-linux-gnu/libpython${PYTHON_VER}.so \
     "$UE_ROOT/Engine/Source/ThirdParty/Python3/Linux/lib/libpython${PYTHON_VER}.a"
 
 # Link Python Headers (Forces UE to use system 3.12 headers)
