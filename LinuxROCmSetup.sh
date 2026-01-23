@@ -37,7 +37,7 @@ mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 # Corrected direct download URL
 PYTHON_VER="3.12.8"
 PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
-wget "https://www.python.org"
+wget "https://www.python.org/ftp/python/3.12.8/"
 
 if [[ ! -f "$PYTHON_TAR" ]]; then
     echo "ERROR: Failed to download $PYTHON_TAR"
