@@ -98,7 +98,8 @@ pip install --upgrade pip wheel
 
 # Install PyTorch for ROCm 7.2
 pip install torch 
-pip install torchvision torchaudio --index-url https://download.pytorch.org/
+pip install torchvision
+pip install torchaudio --index-url https://download.pytorch.org/
 
 echo "========================================="
 echo "Setup Complete!"
