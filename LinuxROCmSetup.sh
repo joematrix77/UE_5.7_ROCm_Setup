@@ -9,6 +9,7 @@ set -euo pipefail
 UE_PATH="/media/joematrix/Storage/UE_5.7"
 INTERNAL_PYTHON="$UE_PATH/Engine/Binaries/ThirdParty/Python3/Linux"
 TEMP_DIR="/tmp/ue_python_setup"
+TARGET_DIR="$UE_PATH/Engine/Source/ThirdParty/Python3/Linux"
 
 echo "--- Cleaning up previous build attempts ---"
 # Use sudo for rm to fix the 'Permission denied' error in /tmp
