@@ -80,7 +80,7 @@ EOF
 
 
 sudo apt update
-sudo apt install -y rocm rocm-dkms rocm-dev hipblas miopen-hip
+sudo apt install -y rocm rocm-dev hipblas miopen-hip
 
 #############################################
 # 4) PyTorch venv Setup (User Level)
