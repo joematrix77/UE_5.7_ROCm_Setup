@@ -28,7 +28,7 @@ mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
 PYTHON_VER="3.12.8"
 PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
-PYTHON_URL="https://www.python.org"
+PYTHON_URL="https://www.python.org/ftp/python/3.12.8/"
 
 # Using CURL with -L (follow redirects) and -A (User Agent) to bypass blocks
 curl -L -A "Mozilla/5.0" "$PYTHON_URL" -o "$PYTHON_TAR"
