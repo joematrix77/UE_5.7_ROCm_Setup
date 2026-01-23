@@ -61,7 +61,7 @@ fi
 
 # 5. Copy New Headers to UE Linux ThirdParty
 echo "Installing Python 3.12 headers to Linux..."
-mkdir -p "$TARGET_DIR/include"
+sudo mkdir -p "$TARGET_DIR/include"
 cp -r $SOURCE_INCLUDE/* "$TARGET_DIR/include/"
 # Linux also requires the pyconfig.h generated at build time
 # We link the system one as a fallback for the headers to be valid
@@ -69,7 +69,7 @@ cp /usr/include/python3.12/pyconfig.h "$TARGET_DIR/include/" 2>/dev/null || echo
 
 # 6. Create Symlinks for Library (The Linux equivalent of the .lib fix)
 echo "Setting up library references..."
-mkdir -p "$TARGET_DIR/lib"
+sudo mkdir -p "$TARGET_DIR/lib"
 # Points the internal UE folder to the system shared object to solve linker errors
 sudo ln -sf /usr/lib/x86_64-linux-gnu/libpython3.12.so "$TARGET_DIR/lib/libpython3.12.so"
 sudo ln -sf /usr/lib/x86_64-linux-gnu/libpython3.12.so "$TARGET_DIR/lib/libpython3.12.a"
