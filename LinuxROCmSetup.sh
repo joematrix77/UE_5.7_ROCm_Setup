@@ -3,7 +3,7 @@ set -euo pipefail
 
 #############################################
 # Linux ROCm 7.2 + UE Python 3.12 Setup
-# Verified for Jan 2026 (Ubuntu 24.04 "Noble")
+# Updated: Jan 22, 2026
 #############################################
 
 UE_PATH="/media/joematrix/Storage/UE_5.7"
@@ -19,7 +19,7 @@ echo "========================================"
 #############################################
 echo "--- Installing system build dependencies ---"
 sudo apt update
-# Note: Use libncurses-dev (standard in 24.04)
+# Fixed: libncurses-dev for Ubuntu 24.04 compatibility
 sudo apt install -y build-essential wget curl xz-utils \
     libssl-dev libffi-dev zlib1g-dev libbz2-dev \
     libreadline-dev libsqlite3-dev libncurses-dev \
@@ -34,13 +34,17 @@ rm -rf "$TEMP_DIR"
 mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
 PYTHON_VER="3.12.8"
-# Direct link to the source archive
+# Direct URL to the actual archive file
 PYTHON_URL="https://www.python.org"
 
-wget "$PYTHON_URL" -O "Python-$PYTHON_VER.tar.xz"
+# Using -c to continue and -O to ensure it doesn't save as index.html
+wget -c "$PYTHON_URL" -O "Python-$PYTHON_VER.tar.xz"
 
-if [[ ! -f "Python-$PYTHON_VER.tar.xz" ]]; then
-    echo "ERROR: Download failed!"
+# Verify file integrity/size (HTML is usually < 50KB, Source is ~20MB)
+FILE_SIZE=$(stat -c%s "Python-$PYTHON_VER.tar.xz")
+if [ "$FILE_SIZE" -lt 1000000 ]; then
+    echo "ERROR: Downloaded file is too small ($FILE_SIZE bytes). It is likely an HTML error page."
+    echo "Verify your network or the URL: $PYTHON_URL"
     exit 1
 fi
 
@@ -58,36 +62,38 @@ cd "$INTERNAL_PYTHON/lib"
 sudo ln -sf libpython3.12.so.1.0 libpython3.12.so
 
 #############################################
-# 3) ROCm 7.2 Repository Setup
+# 3) ROCm 7.2 Install (Noble Native)
 #############################################
-echo "--- Configuring ROCm 7.2 for Noble ---"
+echo "--- Configuring ROCm 7.2 ---"
+sudo usermod -a -G render,video "$USER"
+
 sudo mkdir -p /etc/apt/keyrings
 wget -qO- https://repo.radeon.com | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
+# Official 2026 ROCm 7.2 repo for Ubuntu 24.04 (noble)
 sudo tee /etc/apt/sources.list.d/rocm.list << EOF
-deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.2 noble main
-deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/7.2/ubuntu noble main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com noble main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com noble main
 EOF
 
 sudo apt update
 sudo apt install -y rocm-dkms rocm-dev hipblas miopen-hip
 
 #############################################
-# 4) Environment Setup
+# 4) PyTorch 2026 Environment Note
 #############################################
-echo "--- Validating ROCm ---"
-/opt/rocm/bin/rocminfo | grep gfx || echo "Warning: GPU not detected by ROCm."
-
 cat << 'EOF'
 
-========================================
-To install PyTorch (ROCm 7.2 + Python 3.12):
-========================================
+#############################################
+PyTorch ROCm 7.2 + Python 3.12 Setup:
+#############################################
+To complete your setup, create a venv:
+    
+    python3.12 -m venv ~/ue_rocm_env
+    source ~/ue_rocm_env/bin/activate
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/rocm7.2
 
-    python3.12 -m venv ~/rocm_torch
-    source ~/rocm_torch/bin/activate
-    pip install --upgrade pip wheel
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm7.2
-
+If using an RDNA3 card, run:
+    export HSA_OVERRIDE_GFX_VERSION=11.0.0
 ========================================
 EOF
