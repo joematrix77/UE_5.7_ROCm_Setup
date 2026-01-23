@@ -97,7 +97,8 @@ source ~/ue_rocm_env/bin/activate
 pip install --upgrade pip wheel
 
 # Install PyTorch for ROCm 7.2
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm7.2
+pip install torch 
+pip install torchvision torchaudio --index-url https://download.pytorch.org/
 
 echo "========================================="
 echo "Setup Complete!"
