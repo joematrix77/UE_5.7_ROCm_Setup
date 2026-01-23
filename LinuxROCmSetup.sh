@@ -1,34 +1,33 @@
 #!/bin/bash
-# Configuration
+# Configuration for 2026
 PYTHON_VER="3.12.8"
 UE_ROOT="/media/joematrix/Storage/UE_5.7"
 INTERNAL_PY_PATH="$UE_ROOT/Engine/Binaries/ThirdParty/Python3/Linux"
 
 set -e
 
-echo "Starting internalized Python $PYTHON_VER setup for UE 5.7 (Linux)..."
+echo "Starting internalized Python $PYTHON_VER setup for UE 5.7 (2026)..."
 
-# 1. Install system-wide build tools required for the initial compilation
+# 1. Install system build dependencies
 sudo apt update && sudo apt install -y build-essential libssl-dev libffi-dev \
     zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
     libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev
 
 # 2. Prepare build directory
 mkdir -p "$INTERNAL_PY_PATH"
-TEMP_BUILD="/tmp/ue_python_build"
+TEMP_BUILD="/tmp/ue_python_build_2026"
 rm -rf "$TEMP_BUILD" 
 mkdir -p "$TEMP_BUILD" && cd "$TEMP_BUILD"
 
-# 3. Robust Download: Using a direct FTP link to the archive
+# 3. DIRECT DOWNLOAD (Fixed URL for 2026)
 echo "Downloading Python $PYTHON_VER source code..."
-wget -O "Python-${PYTHON_VER}.tar.xz" "https://www.python.org{PYTHON_VER}/Python-${PYTHON_VER}.tar.xz"
+wget "{PYTHON_VER}/Python-${PYTHON_VER}.tar.xz"
 
 echo "Extracting..."
 tar -xf "Python-${PYTHON_VER}.tar.xz"
 cd "Python-${PYTHON_VER}"
 
-# 4. Configure and Build
-# CRITICAL: --enable-shared and -fPIC ensure it works with UE plugins
+# 4. Configure and Build with UE-Required Flags
 echo "Configuring build for UE internal path..."
 ./configure --prefix="$INTERNAL_PY_PATH" \
             --enable-shared \
@@ -46,14 +45,12 @@ cd "$INTERNAL_PY_PATH/lib"
 ln -sf libpython3.12.so.1.0 libpython3.12.so
 ln -sf libpython3.12.so.1.0 libpython3.12.a
 
-# 6. Set ROCm and Internal Python Environment
+# 6. Set Environment Variables
 export UE_PYTHON_DIR="$INTERNAL_PY_PATH"
 export ROCM_PATH="/opt/rocm"
-export HIP_PATH="$ROCM_PATH/hip"
+export PATH="$INTERNAL_PY_PATH/bin:$ROCM_PATH/bin:$PATH"
 export LD_LIBRARY_PATH="$INTERNAL_PY_PATH/lib:$ROCM_PATH/lib:$LD_LIBRARY_PATH"
 
 echo "-----------------------------------------------------------"
 echo "INTERNAL PYTHON SETUP COMPLETE"
-echo "Path: $INTERNAL_PY_PATH"
 echo "-----------------------------------------------------------"
-echo "Next: Clean intermediates and rebuild UE"
