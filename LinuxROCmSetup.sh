@@ -46,13 +46,22 @@ sudo apt install -y \
 #############################################
 echo "--- Installing ROCm 7.1 ---"
 sudo usermod -a -G render,video "$USER"
+#############################################
+# === CREATE UE PYTHON VENV & INSTALL TORCH ===
+#############################################
+echo "--- Creating Python venv and installing PyTorch (ROCm 7.1) ---"
 
+"$INTERNAL_PYTHON/bin/python3" -m venv "$VENV_PATH"
+source "$VENV_PATH/bin/activate"
+
+pip install --upgrade pip setuptools wheel
+
+pip install torch torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/rocm7.1
+    
 # modern keyring instead of apt-key
 wget -q https://repo.radeon.com/rocm/rocm.gpg.key -O /tmp/rocm.gpg
 sudo gpg --dearmor -o /usr/share/keyrings/rocm.gpg /tmp/rocm.gpg
-
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.1/ jammy main" | \
-    sudo tee /etc/apt/sources.list.d/rocm.list
 
 sudo apt update
 sudo apt install -y rocm-dkms rocm-dev rocm-utils hipblas miopen-hip
@@ -93,19 +102,6 @@ make install
 cd "$INTERNAL_PYTHON/lib"
 ln -sf libpython3.12.so.1.0 libpython3.12.so
 ln -sf libpython3.12.so.1.0 libpython3.12.a
-
-#############################################
-# === CREATE UE PYTHON VENV & INSTALL TORCH ===
-#############################################
-echo "--- Creating Python venv and installing PyTorch (ROCm 7.1) ---"
-
-"$INTERNAL_PYTHON/bin/python3" -m venv "$VENV_PATH"
-source "$VENV_PATH/bin/activate"
-
-pip install --upgrade pip setuptools wheel
-
-pip install torch torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/rocm7.1
 
 #############################################
 # === VERIFY ROCM + PYTORCH ===
