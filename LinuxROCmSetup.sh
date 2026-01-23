@@ -59,8 +59,12 @@ sudo ln -sf libpython3.12.so.1.0 libpython3.12.so
 # 2) ROCm 7.2 Installation
 #############################################
 echo "--- Configuring ROCm 7.2 (Latest 2026 Repo) ---"
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://repo.radeon.com | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
+# Ensure the keyring directory exists
+sudo mkdir --parents --mode=0755 /etc/apt/keyrings
+
+# Download the 2026 GPG key using browser-like headers to bypass server blocks
+curl -L -A "Mozilla/5.0" https://repo.radeon.com/rocm/rocm.gpg.key | \
+gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
 sudo tee /etc/apt/sources.list.d/rocm.list << EOF
 deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com noble main
