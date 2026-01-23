@@ -58,9 +58,10 @@ sudo apt update
 
 echo "--- Installing ROCm packages ---"
 sudo apt install -y \
-    rocm \
     rocm-dev \
     rocm-utils \
+    rocminfo \
+    rocm-smi \
     hipblas \
     miopen-hip
 
