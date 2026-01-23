@@ -33,12 +33,8 @@ sudo ln -sf /usr/lib/x86_64-linux-gnu/libpython${PYTHON_VER}.so \
 sudo ln -sf /usr/include/python${PYTHON_VER} "$UE_ROOT/Engine/Source/ThirdParty/Python3/Linux/include/python${PYTHON_VER}"
 
 # Link Boost Python Static Lib (Dynamically find the 1.83 version and link it as 1.85)
-BOOST_LIB=$(find /usr/lib/x86_64-linux-gnu/ -name "libboost_python312*.a" | head -n 1)
-if [ -z "$BOOST_LIB" ]; then
-    echo "Error: libboost_python312 static library not found! Ensure libboost-python-dev is installed."
-    exit 1
-fi
-sudo ln -sf "$BOOST_LIB" \
+BOOST_SO=$(find /usr/lib/x86_64-linux-gnu/ -name "libboost_python312*.so" | head -n 1)
+sudo ln -sf "$BOOST_SO" \
     "$UE_ROOT/Engine/Source/ThirdParty/Boost/Deploy/boost-1.85.0/Unix/x86_64-unknown-linux-gnu/lib/libboost_python312-mt-x64.a"
 
 # 4. Set Environment Variables
