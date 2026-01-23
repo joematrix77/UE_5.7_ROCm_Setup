@@ -58,7 +58,7 @@ sudo apt update
 
 echo "--- Installing ROCm packages ---"
 sudo apt install -y \
-    rocm-dkms \
+    rocm \
     rocm-dev \
     rocm-utils \
     hipblas \
