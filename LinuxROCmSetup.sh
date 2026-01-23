@@ -2,8 +2,8 @@
 set -euo pipefail
 
 #############################################
-# Linux ROCm 7.2 + UE Python 3.12 + PyTorch
-# Updated: January 22, 2026
+# Linux ROCm 7.2 + UE Python 3.12 Setup
+# Updated: Jan 23, 2026
 #############################################
 
 UE_PATH="/media/joematrix/Storage/UE_5.7"
@@ -12,7 +12,7 @@ TEMP_DIR="/tmp/ue_python_setup"
 
 echo "--- Installing system build dependencies ---"
 sudo apt update
-# 2026 Noble uses libncurses-dev
+# Ubuntu 24.04 uses libncurses-dev
 sudo apt install -y build-essential wget curl xz-utils \
     libssl-dev libffi-dev zlib1g-dev libbz2-dev \
     libreadline-dev libsqlite3-dev libncurses-dev \
@@ -22,24 +22,25 @@ sudo apt install -y build-essential wget curl xz-utils \
 #############################################
 # 1) Download and Install Internal Python 3.12
 #############################################
-echo "--- Downloading Python 3.12.8 Source via Curl ---"
+echo "--- Downloading Python 3.12.8 Source ---"
 rm -rf "$TEMP_DIR"
 mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
 PYTHON_VER="3.12.8"
 PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
-PYTHON_URL="https://www.python.org/ftp/python/3.12.8/"
+# DIRECT URL to the specific file
+PYTHON_URL="https://www.python.org"
 
-# Using CURL with -L (follow redirects) and -A (User Agent) to bypass blocks
-curl -L -A "Mozilla/5.0" "$PYTHON_URL" -o "$PYTHON_TAR"
+# Using Curl with -L (follow redirects) and -O (save as filename)
+# This bypasses the directory index HTML issue
+curl -L "$PYTHON_URL" -o "$PYTHON_TAR"
 
-# Safety Check: Archive must be ~20MB
+# Safety Check: Should be ~20MB
 FILE_SIZE=$(stat -c%s "$PYTHON_TAR")
- if [ "$FILE_SIZE" -lt 10000000 ]; then
-   echo "ERROR: Download failed. File size is only $FILE_SIZE bytes."
-   echo "Check if the URL is correct: $PYTHON_URL"
-   exit 1
- fi
+if [ "$FILE_SIZE" -lt 15000000 ]; then
+    echo "ERROR: Downloaded file is too small ($FILE_SIZE bytes). It's likely HTML."
+    exit 1
+fi
 
 echo "--- Extracting and Building Python ---"
 tar -xf "$PYTHON_TAR"
@@ -55,9 +56,9 @@ cd "$INTERNAL_PYTHON/lib"
 sudo ln -sf libpython3.12.so.1.0 libpython3.12.so
 
 #############################################
-# 2) ROCm 7.2 Installation
+# 2) ROCm 7.2 Installation (Noble)
 #############################################
-echo "--- Configuring ROCm 7.2 (January 2026 Release) ---"
+echo "--- Configuring ROCm 7.2 ---"
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL https://repo.radeon.com | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
@@ -70,15 +71,18 @@ sudo apt update
 sudo apt install -y rocm-dkms rocm-dev hipblas miopen-hip
 
 #############################################
-# 3) PyTorch venv Setup
+# 3) PyTorch venv Setup (Immediate)
 #############################################
-echo "--- Creating PyTorch ROCm 7.2 Environment ---"
+echo "--- Setting up PyTorch in Virtual Env ---"
 python3.12 -m venv ~/ue_rocm_env
 source ~/ue_rocm_env/bin/activate
 pip install --upgrade pip wheel
 
-# Install PyTorch for ROCm 7.2 (current stable January 2026)
+# Install PyTorch for ROCm 7.2
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org
+
+echo "--- Verification ---"
+python -c "import torch; print(f'ROCm available: {torch.cuda.is_available()}'); print(f'Device: {torch.cuda.get_device_name(0)}' if torch.cuda.is_available() else 'No GPU found')"
 
 echo "========================================="
 echo "Setup Complete!"
