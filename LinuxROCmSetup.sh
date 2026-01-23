@@ -51,6 +51,21 @@ sudo make install
 # Fix permissions on the internal Python directory so UE can use it
 sudo chown -R $USER:$USER "$INTERNAL_PYTHON"
 
+# 4. Backup Existing UE Headers
+BACKUP_SUFFIX=$(date +%Y%m%d_%H%M%S)
+if [ -d "$TARGET_DIR/include" ]; then
+    echo "Backing up existing headers..."
+    mv "$TARGET_DIR/include" "${TARGET_DIR}/include_backup_${BACKUP_SUFFIX}"
+fi
+
+# 5. Copy New Headers to UE Linux ThirdParty
+echo "Installing Python 3.12 headers to Linux..."
+mkdir -p "$TARGET_DIR/include"
+cp -r $SOURCE_INCLUDE/* "$TARGET_DIR/include/"
+# Linux also requires the pyconfig.h generated at build time
+# We link the system one as a fallback for the headers to be valid
+cp /usr/include/python3.12/pyconfig.h "$TARGET_DIR/include/" 2>/dev/null || echo "Note: system pyconfig.h not found, ensure python3.12-dev is installed."
+
 # 6. Create Symlinks for Library (The Linux equivalent of the .lib fix)
 echo "Setting up library references..."
 mkdir -p "$TARGET_DIR/lib"
