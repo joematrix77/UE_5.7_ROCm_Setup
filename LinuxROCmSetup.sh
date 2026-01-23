@@ -30,22 +30,32 @@ sudo apt install -y build-essential wget curl xz-utils \
 #############################################
 # 2) Download and Install Internal Python 3.12
 #############################################
-echo "--- Building Python 3.12.8 for UE Internal ---"
+echo "--- Downloading and Building Python 3.12.8 ---"
 rm -rf "$TEMP_DIR"
 mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
+# Corrected direct download URL
 PYTHON_VER="3.12.8"
+PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
 wget "https://www.python.org"
-tar -xf "Python-$PYTHON_VER.tar.xz"
+
+if [[ ! -f "$PYTHON_TAR" ]]; then
+    echo "ERROR: Failed to download $PYTHON_TAR"
+    exit 1
+fi
+
+tar -xf "$PYTHON_TAR"
 cd "Python-$PYTHON_VER"
 
+echo "--- Configuring and building Python ---"
 ./configure --prefix="$INTERNAL_PYTHON" --enable-shared --with-system-ffi \
     CFLAGS="-fPIC" LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib'"
-make -j"$(nproc)" && make install
+make -j"$(nproc)"
+sudo make install
 
-# Symlink shared libs for UE compatibility
+# Symlink shared libs for UE
 cd "$INTERNAL_PYTHON/lib"
-ln -sf libpython3.12.so.1.0 libpython3.12.so
+sudo ln -sf libpython3.12.so.1.0 libpython3.12.so
 
 #############################################
 # 3) ROCm 7.2 Install
