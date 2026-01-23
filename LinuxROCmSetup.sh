@@ -24,7 +24,7 @@ sudo apt update
 sudo apt install -y build-essential wget curl xz-utils \
     libssl-dev libffi-dev zlib1g-dev libbz2-dev \
     libreadline-dev libsqlite3-dev libncursesw5-dev \
-    tk-dev liblzma-dev pkg-config git python3.11 python3.11-venv python3-pip
+    tk-dev liblzma-dev pkg-config git python3.12 python3.12-venv python3-pip
 
 #############################################
 # 2) Download and Install Internal Python 3.12
