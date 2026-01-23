@@ -2,8 +2,8 @@
 set -euo pipefail
 
 #############################################
-# Linux ROCm 7.2 + UE Python 3.12 Setup
-# Updated: Jan 23, 2026
+# Linux ROCm 7.2 + UE Python 3.12 + PyTorch Setup
+# Updated: January 23, 2026
 #############################################
 
 UE_PATH="/media/joematrix/Storage/UE_5.7"
@@ -12,7 +12,7 @@ TEMP_DIR="/tmp/ue_python_setup"
 
 echo "--- Installing system build dependencies ---"
 sudo apt update
-# Ubuntu 24.04 uses libncurses-dev
+# 2026 Ubuntu 24.04 (Noble) uses libncurses-dev
 sudo apt install -y build-essential wget curl xz-utils \
     libssl-dev libffi-dev zlib1g-dev libbz2-dev \
     libreadline-dev libsqlite3-dev libncurses-dev \
@@ -28,17 +28,17 @@ mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
 PYTHON_VER="3.12.8"
 PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
-# DIRECT URL to the specific file
-PYTHON_URL="https://www.python.org/ftp/python/3.12.8/"
+# FIXED: Absolute direct URL to the source tarball
+PYTHON_URL="https://www.python.org/ftp/python/3.12.8/Python-3.12.8.tar.xz"
 
-# Using Curl with -L (follow redirects) and -O (save as filename)
-# This bypasses the directory index HTML issue
-curl -L "$PYTHON_URL" -o "$PYTHON_TAR"
+# Using CURL with browser-mimicking headers to avoid blocks
+curl -L -A "Mozilla/5.0" "$PYTHON_URL" -o "$PYTHON_TAR"
 
-# Safety Check: Should be ~20MB
+# Verification: The source tarball is approximately 20MB
 FILE_SIZE=$(stat -c%s "$PYTHON_TAR")
 if [ "$FILE_SIZE" -lt 15000000 ]; then
-    echo "ERROR: Downloaded file is too small ($FILE_SIZE bytes). It's likely HTML."
+    echo "ERROR: Download failed. File size is only $FILE_SIZE bytes (expected ~20MB)."
+    echo "Check the URL directly: $PYTHON_URL"
     exit 1
 fi
 
@@ -51,14 +51,14 @@ cd "Python-$PYTHON_VER"
 make -j"$(nproc)"
 sudo make install
 
-# Symlink shared libs for UE
+# Symlink shared libs for UE compatibility
 cd "$INTERNAL_PYTHON/lib"
 sudo ln -sf libpython3.12.so.1.0 libpython3.12.so
 
 #############################################
-# 2) ROCm 7.2 Installation (Noble)
+# 2) ROCm 7.2 Installation
 #############################################
-echo "--- Configuring ROCm 7.2 ---"
+echo "--- Configuring ROCm 7.2 (Latest 2026 Repo) ---"
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL https://repo.radeon.com | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
@@ -71,18 +71,15 @@ sudo apt update
 sudo apt install -y rocm-dkms rocm-dev hipblas miopen-hip
 
 #############################################
-# 3) PyTorch venv Setup (Immediate)
+# 3) Immediate PyTorch venv Setup
 #############################################
-echo "--- Setting up PyTorch in Virtual Env ---"
+echo "--- Creating PyTorch ROCm 7.2 Environment ---"
 python3.12 -m venv ~/ue_rocm_env
 source ~/ue_rocm_env/bin/activate
 pip install --upgrade pip wheel
 
-# Install PyTorch for ROCm 7.2
+# Install PyTorch for ROCm 7.2 (Stable release as of Jan 2026)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org
-
-echo "--- Verification ---"
-python -c "import torch; print(f'ROCm available: {torch.cuda.is_available()}'); print(f'Device: {torch.cuda.get_device_name(0)}' if torch.cuda.is_available() else 'No GPU found')"
 
 echo "========================================="
 echo "Setup Complete!"
