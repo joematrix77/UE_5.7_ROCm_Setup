@@ -58,10 +58,6 @@ pip install --upgrade pip setuptools wheel
 
 pip install torch torchvision torchaudio \
     --index-url https://download.pytorch.org/whl/rocm7.1
-    
-# modern keyring instead of apt-key
-wget -q https://repo.radeon.com/rocm/rocm.gpg.key -O /tmp/rocm.gpg
-sudo gpg --dearmor -o /usr/share/keyrings/rocm.gpg /tmp/rocm.gpg
 
 sudo apt update
 sudo apt install -y rocm-dkms rocm-dev rocm-utils hipblas miopen-hip
