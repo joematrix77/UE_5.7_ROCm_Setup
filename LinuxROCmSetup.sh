@@ -7,6 +7,7 @@ set -euo pipefail
 #############################################
 
 UE_PATH="/media/joematrix/Storage/UE_5.7"
+SOURCE_INCLUDE="$UE_PATH/Engine/Source/ThirdParty/Python3/Linux/include"
 INTERNAL_PYTHON="$UE_PATH/Engine/Binaries/ThirdParty/Python3/Linux"
 TEMP_DIR="/tmp/ue_python_setup"
 TARGET_DIR="$UE_PATH/Engine/Source/ThirdParty/Python3/Linux"
