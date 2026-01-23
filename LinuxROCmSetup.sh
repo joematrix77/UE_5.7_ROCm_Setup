@@ -146,6 +146,11 @@ else
     echo "WARNING: Python3.Build.cs not found (skipping)"
 fi
 
+import site
+site.addsitedir(
+    "/media/joematrix/Storage/UE_5.7/Engine/Binaries/ThirdParty/Python3/Linux/venv_torch/lib/python3.12/site-packages"
+)
+
 #############################################
 # 7. FINAL STEPS
 #############################################
