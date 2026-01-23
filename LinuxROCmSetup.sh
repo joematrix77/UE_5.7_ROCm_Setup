@@ -8,54 +8,52 @@ set -e
 
 echo "Starting internalized Python $PYTHON_VER setup for UE 5.7 (Linux)..."
 
-# 1. Install necessary build dependencies on the host
-# Added extra libs for a complete Python build (ssl, bz2, readline, etc)
+# 1. Install system-wide build tools required for the initial compilation
 sudo apt update && sudo apt install -y build-essential libssl-dev libffi-dev \
     zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
     libncurses5-dev libncursesw5-dev xz-utils tk-dev liblzma-dev
 
-# 2. Compile a portable Python into the UE folder
+# 2. Prepare build directory
 mkdir -p "$INTERNAL_PY_PATH"
 TEMP_BUILD="/tmp/ue_python_build"
-rm -rf "$TEMP_BUILD"  # Clean previous failed attempts
+rm -rf "$TEMP_BUILD" 
 mkdir -p "$TEMP_BUILD" && cd "$TEMP_BUILD"
 
-# CORRECTED DOWNLOAD URL
-echo "Downloading Python $PYTHON_VER source..."
-wget "https://www.python.org{PYTHON_VER}/Python-${PYTHON_VER}.tar.xz"
+# 3. Robust Download: Using a direct FTP link to the archive
+echo "Downloading Python $PYTHON_VER source code..."
+wget -O "Python-${PYTHON_VER}.tar.xz" "https://www.python.org{PYTHON_VER}/Python-${PYTHON_VER}.tar.xz"
 
 echo "Extracting..."
-tar -xf "Python-${PYTHON_VER}.tar.xz" && cd "Python-${PYTHON_VER}"
+tar -xf "Python-${PYTHON_VER}.tar.xz"
+cd "Python-${PYTHON_VER}"
 
-# 3. Configure and Build
-# --enable-shared and -fPIC are required for UE modules to link properly
-echo "Configuring Python..."
+# 4. Configure and Build
+# CRITICAL: --enable-shared and -fPIC ensure it works with UE plugins
+echo "Configuring build for UE internal path..."
 ./configure --prefix="$INTERNAL_PY_PATH" \
             --enable-shared \
             --with-system-ffi \
+            CFLAGS="-fPIC" \
             LDFLAGS="-Wl,-rpath,'\$\$ORIGIN/../lib'"
 
-echo "Building (this may take a few minutes)..."
+echo "Building (using all CPU cores)..."
 make -j$(nproc)
 echo "Installing into $INTERNAL_PY_PATH..."
 make install
 
-# 4. Fix names for Unreal Build Tool (UBT) compatibility
+# 5. Fix library naming for Unreal Build Tool (UBT) compatibility
 cd "$INTERNAL_PY_PATH/lib"
 ln -sf libpython3.12.so.1.0 libpython3.12.so
 ln -sf libpython3.12.so.1.0 libpython3.12.a
 
-# 5. Final Setup for ROCm Environment Variables
+# 6. Set ROCm and Internal Python Environment
 export UE_PYTHON_DIR="$INTERNAL_PY_PATH"
 export ROCM_PATH="/opt/rocm"
 export HIP_PATH="$ROCM_PATH/hip"
 export LD_LIBRARY_PATH="$INTERNAL_PY_PATH/lib:$ROCM_PATH/lib:$LD_LIBRARY_PATH"
 
 echo "-----------------------------------------------------------"
-echo "Internal Python 3.12 is now installed at: $INTERNAL_PY_PATH"
+echo "INTERNAL PYTHON SETUP COMPLETE"
+echo "Path: $INTERNAL_PY_PATH"
 echo "-----------------------------------------------------------"
-echo "CRITICAL: Run these commands next:"
-echo "1. rm -rf $UE_ROOT/Engine/Intermediate/Build/Linux"
-echo "2. cd $UE_ROOT"
-echo "3. ./GenerateProjectFiles.sh"
-echo "4. make"
+echo "Next: Clean intermediates and rebuild UE"
