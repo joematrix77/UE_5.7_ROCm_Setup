@@ -58,11 +58,18 @@ ln -sf libpython3.12.so.1.0 libpython3.12.so
 # 3) ROCm 7.2 Installation (GPG Fix)
 #############################################
 echo "--- Configuring ROCm 7.2 (January 2026) ---"
-sudo mkdir -p /etc/apt/keyrings
+# Make the directory if it doesn't exist yet.
+# This location is recommended by the distribution maintainers.
+sudo mkdir --parents --mode=0755 /etc/apt/keyrings
+
+# Download the key, convert the signing-key to a full
+# keyring required by apt and store in the keyring directory
+wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | \
+    gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
 # Fixed GPG Download: Bypassing server blocks
-curl -L -A "Mozilla/5.0" https://repo.radeon.com | \
-gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
+#curl -L -A "Mozilla/5.0" https://repo.radeon.com | \
+#gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
 sudo tee /etc/apt/sources.list.d/rocm.list << EOF
 deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.2 noble main
