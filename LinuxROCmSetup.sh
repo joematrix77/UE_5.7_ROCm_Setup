@@ -29,7 +29,7 @@ mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 PYTHON_VER="3.12.8"
 PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
 # DIRECT URL to the specific file
-PYTHON_URL="https://www.python.org"
+PYTHON_URL="https://www.python.org/ftp/python/3.12.8/"
 
 # Using Curl with -L (follow redirects) and -O (save as filename)
 # This bypasses the directory index HTML issue
