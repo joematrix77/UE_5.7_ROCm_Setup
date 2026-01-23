@@ -50,9 +50,12 @@ sudo make install
 # Fix permissions on the internal Python directory so UE can use it
 sudo chown -R $USER:$USER "$INTERNAL_PYTHON"
 
-# Symlink shared libs for UE
-cd "$INTERNAL_PYTHON/lib"
-ln -sf libpython3.12.so.1.0 libpython3.12.so
+# 6. Create Symlinks for Library (The Linux equivalent of the .lib fix)
+echo "Setting up library references..."
+mkdir -p "$TARGET_DIR/lib"
+# Points the internal UE folder to the system shared object to solve linker errors
+sudo ln -sf /usr/lib/x86_64-linux-gnu/libpython3.12.so "$TARGET_DIR/lib/libpython3.12.so"
+sudo ln -sf /usr/lib/x86_64-linux-gnu/libpython3.12.so "$TARGET_DIR/lib/libpython3.12.a"
 
 #############################################
 # 3) ROCm 7.2 Installation (GPG Fix)
