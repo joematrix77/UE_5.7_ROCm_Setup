@@ -2,8 +2,8 @@
 set -euo pipefail
 
 #############################################
-# Linux ROCm 7.2 + UE Python 3.12 + PyTorch Setup
-# Updated: January 22, 2026
+# Linux ROCm 7.2 + UE Python 3.12 Setup
+# Updated: Jan 22, 2026 
 #############################################
 
 UE_PATH="/media/joematrix/Storage/UE_5.7"
@@ -12,6 +12,7 @@ TEMP_DIR="/tmp/ue_python_setup"
 
 echo "--- Installing system build dependencies ---"
 sudo apt update
+# 2026 Note: libncurses-dev is the correct package for Ubuntu 24.04
 sudo apt install -y build-essential wget curl xz-utils \
     libssl-dev libffi-dev zlib1g-dev libbz2-dev \
     libreadline-dev libsqlite3-dev libncurses-dev \
@@ -27,19 +28,26 @@ mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
 PYTHON_VER="3.12.8"
 PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
+# Direct binary URL
 PYTHON_URL="https://www.python.org"
 
-# Using a standard browser header to bypass server blocks
-wget --user-agent="Mozilla/5.0" "$PYTHON_URL" -O "$PYTHON_TAR"
+# FIX: Use User-Agent AND Referer to bypass server-side blocks
+wget --user-agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" \
+     --header="Referer: 
 
-# Safety Check: HTML is ~10KB, Source is ~20MB
+https://www.python.org/downloads/source/
+" \
+     "$PYTHON_URL" -O "$PYTHON_TAR"
+
+# Verification: Source archive should be ~20MB (20,000,000+ bytes)
 FILE_SIZE=$(stat -c%s "$PYTHON_TAR")
-if [ "$FILE_SIZE" -lt 1000000 ]; then
-    echo "ERROR: Downloaded file is too small ($FILE_SIZE bytes). Server served an HTML page."
+if [ "$FILE_SIZE" -lt 10000000 ]; then
+    echo "ERROR: Download failed. File size is only $FILE_SIZE bytes (expected ~20MB)."
+    echo "The server is still blocking the automated request."
     exit 1
 fi
 
-echo "--- Extracting and Building ---"
+echo "--- Extracting and Building Python ---"
 tar -xf "$PYTHON_TAR"
 cd "Python-$PYTHON_VER"
 
@@ -53,9 +61,9 @@ cd "$INTERNAL_PYTHON/lib"
 sudo ln -sf libpython3.12.so.1.0 libpython3.12.so
 
 #############################################
-# 2) ROCm 7.2 Installation (Noble Native)
+# 2) ROCm 7.2 Installation
 #############################################
-echo "--- Configuring ROCm 7.2 (Latest 2026 Repo) ---"
+echo "--- Configuring ROCm 7.2 for Noble ---"
 sudo mkdir -p /etc/apt/keyrings
 wget -qO- https://repo.radeon.com | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
@@ -68,15 +76,15 @@ sudo apt update
 sudo apt install -y rocm-dkms rocm-dev hipblas miopen-hip
 
 #############################################
-# 3) Immediate PyTorch venv Setup
+# 3) Immediate PyTorch Environment Setup
 #############################################
-echo "--- Creating PyTorch ROCm 7.2 Environment ---"
+echo "--- Setting up PyTorch in Virtual Environment ---"
 python3.12 -m venv ~/ue_rocm_env
 source ~/ue_rocm_env/bin/activate
 pip install --upgrade pip wheel
 
-# Install PyTorch for ROCm 7.2 (January 2026 stable release)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm7.2
+# Install PyTorch for ROCm 7.2 (Latest 2026 Release)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org
 
 echo "--- Setup Complete! ---"
-echo "To use this environment later, run: source ~/ue_rocm_env/bin/activate"
+echo "To use your environment: source ~/ue_rocm_env/bin/activate"
