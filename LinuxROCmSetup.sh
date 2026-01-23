@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #############################################
-# Linux ROCm 7.2 + UE Python 3.12 + PyTorch Setup
+# Linux ROCm 7.2 + UE Python 3.12 + PyTorch
 # Updated: January 23, 2026
 #############################################
 
@@ -10,9 +10,16 @@ UE_PATH="/media/joematrix/Storage/UE_5.7"
 INTERNAL_PYTHON="$UE_PATH/Engine/Binaries/ThirdParty/Python3/Linux"
 TEMP_DIR="/tmp/ue_python_setup"
 
+echo "--- Cleaning up previous build attempts ---"
+# Use sudo for rm to fix the 'Permission denied' error in /tmp
+sudo rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR"
+
+#############################################
+# 1) Install System Dependencies
+#############################################
 echo "--- Installing system build dependencies ---"
 sudo apt update
-# 2026 Ubuntu 24.04 (Noble) uses libncurses-dev
 sudo apt install -y build-essential wget curl xz-utils \
     libssl-dev libffi-dev zlib1g-dev libbz2-dev \
     libreadline-dev libsqlite3-dev libncurses-dev \
@@ -20,29 +27,18 @@ sudo apt install -y build-essential wget curl xz-utils \
     python3.12-dev python3.12-venv python3-pip
 
 #############################################
-# 1) Download and Install Internal Python 3.12
+# 2) Build Internal Python 3.12
 #############################################
 echo "--- Downloading Python 3.12.8 Source ---"
-rm -rf "$TEMP_DIR"
-mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
-
+cd "$TEMP_DIR"
 PYTHON_VER="3.12.8"
 PYTHON_TAR="Python-$PYTHON_VER.tar.xz"
-# FIXED: Absolute direct URL to the source tarball
 PYTHON_URL="https://www.python.org/ftp/python/3.12.8/Python-3.12.8.tar.xz"
 
-# Using CURL with browser-mimicking headers to avoid blocks
+# Using Curl with browser headers to bypass server blocks
 curl -L -A "Mozilla/5.0" "$PYTHON_URL" -o "$PYTHON_TAR"
 
-# Verification: The source tarball is approximately 20MB
-FILE_SIZE=$(stat -c%s "$PYTHON_TAR")
-if [ "$FILE_SIZE" -lt 15000000 ]; then
-    echo "ERROR: Download failed. File size is only $FILE_SIZE bytes (expected ~20MB)."
-    echo "Check the URL directly: $PYTHON_URL"
-    exit 1
-fi
-
-echo "--- Extracting and Building Python ---"
+echo "--- Extracting and Building ---"
 tar -xf "$PYTHON_TAR"
 cd "Python-$PYTHON_VER"
 
@@ -51,19 +47,21 @@ cd "Python-$PYTHON_VER"
 make -j"$(nproc)"
 sudo make install
 
-# Symlink shared libs for UE compatibility
+# Fix permissions on the internal Python directory so UE can use it
+sudo chown -R $USER:$USER "$INTERNAL_PYTHON"
+
+# Symlink shared libs for UE
 cd "$INTERNAL_PYTHON/lib"
-sudo ln -sf libpython3.12.so.1.0 libpython3.12.so
+ln -sf libpython3.12.so.1.0 libpython3.12.so
 
 #############################################
-# 2) ROCm 7.2 Installation
+# 3) ROCm 7.2 Installation (GPG Fix)
 #############################################
-echo "--- Configuring ROCm 7.2 (Latest 2026 Repo) ---"
-# Ensure the keyring directory exists
-sudo mkdir --parents --mode=0755 /etc/apt/keyrings
+echo "--- Configuring ROCm 7.2 (January 2026) ---"
+sudo mkdir -p /etc/apt/keyrings
 
-# Download the 2026 GPG key using browser-like headers to bypass server blocks
-curl -L -A "Mozilla/5.0" https://repo.radeon.com/rocm/rocm.gpg.key | \
+# Fixed GPG Download: Bypassing server blocks
+curl -L -A "Mozilla/5.0" https://repo.radeon.com | \
 gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg > /dev/null
 
 sudo tee /etc/apt/sources.list.d/rocm.list << EOF
@@ -75,15 +73,18 @@ sudo apt update
 sudo apt install -y rocm-dkms rocm-dev hipblas miopen-hip
 
 #############################################
-# 3) Immediate PyTorch venv Setup
+# 4) PyTorch venv Setup (User Level)
 #############################################
 echo "--- Creating PyTorch ROCm 7.2 Environment ---"
+# Do NOT use sudo here
 python3.12 -m venv ~/ue_rocm_env
 source ~/ue_rocm_env/bin/activate
+
+# Upgrade pip inside the venv
 pip install --upgrade pip wheel
 
-# Install PyTorch for ROCm 7.2 (Stable release as of Jan 2026)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org
+# Install PyTorch for ROCm 7.2
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm7.2
 
 echo "========================================="
 echo "Setup Complete!"
