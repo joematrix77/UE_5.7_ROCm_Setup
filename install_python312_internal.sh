@@ -19,7 +19,7 @@ sudo apt update && sudo apt install -y wget xz-utils tar
 mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 if [ ! -f "python.tar.xz" ]; then
     echo "Downloading Python $PYTHON_VER source..."
-    wget -O python.tar.xz "https://www.python.org"
+    wget -O python.tar.xz "https://www.python.org/ftp/python/3.12.8/Python-3.12.8.tar.xz"
 fi
 
 # 3. Extract Headers
