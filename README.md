@@ -17,7 +17,7 @@ These setup scripts upgrade UE 5.7's Python from 3.11 to 3.12 and install:
 
 | Platform | Script | Status |
 |----------|--------|--------|
-| **Windows 11** | `Setup-ROCm.ps1` | ✅ Tested |
+| **Windows 11** | `WinROCmSetup.ps1` | ✅ Tested |
 | **Ubuntu 24.04** | `LinuxROCmSetup.sh` | ✅ Tested |
 
 ## Supported Hardware
@@ -59,7 +59,7 @@ cd UE_5.7_ROCm_Setup
 
 ```powershell
 # Replace with your UE 5.7 source path
-.\Setup-ROCm.ps1 -UEPath "C:\UnrealEngine-5.7"
+.\WinROCmSetup.ps1 -UEPath "C:\UnrealEngine-5.7"
 ```
 
 The script automatically handles everything:
@@ -88,16 +88,16 @@ This causes `LNK1104: cannot open file 'python311.lib'` during builds. The scrip
 - Replaces headers with Python 3.12 versions (references `python312.lib`)
 - Cleans old object files that have the `python311.lib` pragma embedded
 
-After running the script, rebuild UE and the error is gone
+After running the script, rebuild UE and the error is gone. See [WINDOWS_SETUP_CHANGES.md](WINDOWS_SETUP_CHANGES.md) for full details
 
 ### Optional Parameters
 
 ```powershell
 # Skip backup (if you've already backed up)
-.\Setup-ROCm.ps1 -UEPath "C:\UE_5.7" -SkipBackup
+.\WinROCmSetup.ps1 -UEPath "C:\UE_5.7" -SkipBackup
 
 # Force reinstall even if Python 3.12 is detected
-.\Setup-ROCm.ps1 -UEPath "C:\UE_5.7" -Force
+.\WinROCmSetup.ps1 -UEPath "C:\UE_5.7" -Force
 ```
 
 ---
@@ -232,7 +232,7 @@ GPU: AMD Radeon RX 9060 XT
 ### "LNK1104: cannot open file 'python311.lib'"
 This means the Python 3.12 headers weren't installed correctly. Run:
 ```powershell
-.\Setup-ROCm.ps1 -UEPath "C:\UE_5.7" -Force
+.\WinROCmSetup.ps1 -UEPath "C:\UE_5.7" -Force
 ```
 Then clean and rebuild:
 ```powershell
