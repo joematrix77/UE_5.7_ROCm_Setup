@@ -4,33 +4,49 @@ Upgrade Unreal Engine 5.7's embedded Python to enable **GPU-accelerated machine 
 
 ## What This Does
 
-This setup script upgrades UE 5.7's Python from 3.11 to 3.12 and installs:
+These setup scripts upgrade UE 5.7's Python from 3.11 to 3.12 and install:
 
 | Package | Version | Purpose |
 |---------|---------|---------|
 | Python | 3.12.8 | Required for ROCm wheels |
-| PyTorch | 2.9.0+rocmsdk | Deep learning framework |
-| ROCm SDK | 7.1.1 | AMD GPU compute |
-| transformers | 4.57.6 | Hugging Face models (CLIP, etc.) |
-| ultralytics | 8.4.6 | YOLO object detection |
+| PyTorch | 2.9.0+rocm | Deep learning framework |
+| ROCm SDK | 7.1.1 (Win) / 7.2 (Linux) | AMD GPU compute |
+| transformers | latest | Hugging Face models (CLIP, etc.) |
+
+## Supported Platforms
+
+| Platform | Script | Status |
+|----------|--------|--------|
+| **Windows 11** | `Setup-ROCm.ps1` | ✅ Tested |
+| **Ubuntu 24.04** | `LinuxROCmSetup.sh` | ✅ Tested |
 
 ## Supported Hardware
 
 - **GPUs:** AMD Radeon RX 7000 series, RX 9000 series (RDNA 3/4)
 - **APUs:** Select Ryzen AI 300 series
-- **OS:** Windows 11 (recommended), Windows 10 (may work)
+- **OS:** Windows 11, Ubuntu 24.04 LTS (Noble)
 
 ## Prerequisites
+
+### All Platforms
 
 1. **Unreal Engine 5.7 Source Build**
    - You need [GitHub access to Unreal Engine](https://www.unrealengine.com/ue-on-github)
    - Clone and build UE 5.7 at least once
 
+### Windows
+
 2. **AMD Graphics Driver**
    - Install [AMD Software: PyTorch on Windows Edition 7.1.1](https://www.amd.com/en/support)
    - This is a special driver that enables ROCm on Windows
 
-## Installation
+### Linux (Ubuntu)
+
+2. **No special driver needed** - The script installs ROCm 7.2 from AMD's repository
+
+---
+
+## Installation (Windows)
 
 ### Step 1: Clone This Repository
 
@@ -84,6 +100,87 @@ After running the script, rebuild UE and the error is gone
 .\Setup-ROCm.ps1 -UEPath "C:\UE_5.7" -Force
 ```
 
+---
+
+## Installation (Linux)
+
+### Step 1: Clone This Repository
+
+```bash
+git clone https://github.com/joematrix77/UE_5.7_ROCm_Setup.git
+cd UE_5.7_ROCm_Setup
+```
+
+### Step 2: Run the Setup Script
+
+```bash
+# Replace with your UE 5.7 source path
+chmod +x LinuxROCmSetup.sh
+./LinuxROCmSetup.sh --ue-path /path/to/UE_5.7
+```
+
+Or set via environment variable:
+
+```bash
+export UE_ROOT=/path/to/UE_5.7
+./LinuxROCmSetup.sh
+```
+
+The script automatically handles everything:
+
+| Step | Action | Details |
+|------|--------|---------|
+| 1 | Install dependencies | Build tools, dev libraries |
+| 2 | Backup Python runtime | Copies existing `Linux/` to `Linux_backup_YYYYMMDD/` |
+| 3 | Build Python 3.12.8 | Compiles from source with shared libs + LTO |
+| 4 | Setup headers | Copies to `Engine/Source/ThirdParty/Python3/Linux/include/` |
+| 5 | Setup library | Copies `libpython3.12.so` (as file, not symlink) |
+| 6 | Patch Build.cs | Updates `UnrealUSDWrapper.Build.cs` for explicit linking |
+| 7 | Add user to groups | Adds to `render` and `video` groups for GPU access |
+| 8 | Install ROCm 7.2 | Adds AMD repository, installs rocm-dev, hipblas, etc. |
+| 9 | Install PyTorch | Installs torch/torchvision from ROCm 7.2 wheels |
+| 10 | Verify | Tests Python, headers, library, and PyTorch GPU detection |
+
+**Why the Build.cs patch is critical:**
+
+On Linux, UE's USD plugin adds Python library *paths* but doesn't actually link the library. This causes undefined symbol errors:
+
+```
+ld.lld: error: undefined symbol: _Py_NoneStruct
+ld.lld: error: undefined symbol: PyBool_FromLong
+```
+
+The script adds explicit library linking to fix this. See [LINUX_SETUP_CHANGES.md](LINUX_SETUP_CHANGES.md) for full details.
+
+### Optional Parameters
+
+```bash
+# Skip Python installation (ROCm only)
+./LinuxROCmSetup.sh --skip-python
+
+# Skip ROCm installation (Python only)
+./LinuxROCmSetup.sh --skip-rocm
+
+# Show help
+./LinuxROCmSetup.sh --help
+```
+
+### After Installation
+
+```bash
+# REBOOT (required for group membership)
+sudo reboot
+
+# Then regenerate UE project files
+cd /path/to/UE_5.7
+./GenerateProjectFiles.sh
+
+# Build UE Editor
+make UnrealEditor-Linux-Development -j$(nproc)
+```
+
+---
+
 ## Verification
 
 After setup, verify your GPU is detected:
@@ -103,7 +200,9 @@ ROCm available: True
 GPU: AMD Radeon RX 9060 XT
 ```
 
-## Tested Configuration
+## Tested Configurations
+
+### Windows
 
 | Component | Version/Model |
 |-----------|---------------|
@@ -112,8 +211,19 @@ GPU: AMD Radeon RX 9060 XT
 | Driver | AMD Software: PyTorch on Windows Edition 7.1.1 |
 | UE | 5.7 Source Build |
 
+### Linux
+
+| Component | Version/Model |
+|-----------|---------------|
+| GPU | AMD Radeon RX 9060 XT 16GB (RDNA 4) |
+| OS | Ubuntu 24.04 LTS (Noble) |
+| Kernel | 6.18.x |
+| ROCm | 7.2 |
+| UE | 5.7 Source Build |
+
 ### Verified ML Workloads
 - Depth Anything V2 (monocular depth estimation)
+- Florence-2 (vision-language model)
 - CLIP (vision-language model)
 - YOLO v8 (object detection)
 
@@ -145,7 +255,7 @@ These are harmless. To suppress, set:
 TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1
 ```
 
-### Reverting to Original Python
+### Reverting to Original Python (Windows)
 Your original Python is backed up. To revert:
 ```powershell
 # Find your backup
@@ -155,6 +265,35 @@ ls Engine\Binaries\ThirdParty\Python3\ | Where-Object { $_.Name -like "Win64_bac
 Remove-Item Engine\Binaries\ThirdParty\Python3\Win64 -Recurse -Force
 Rename-Item Engine\Binaries\ThirdParty\Python3\Win64_backup_XXXXXXXX Win64
 ```
+
+### Linux: "undefined symbol: _Py_NoneStruct"
+The Python library isn't being linked. Check:
+1. Library exists: `ls Engine/Source/ThirdParty/Python3/Linux/lib/libpython3.12.so`
+2. It's a file, not symlink: `file Engine/Source/ThirdParty/Python3/Linux/lib/libpython3.12.so`
+3. Build.cs was patched: `grep "libpython3.12.so" Engine/Plugins/Runtime/USDCore/Source/UnrealUSDWrapper/UnrealUSDWrapper.Build.cs`
+
+Re-run the script with `--skip-rocm` to re-apply fixes without reinstalling ROCm.
+
+### Linux: PyTorch doesn't detect GPU
+1. **Reboot** after running setup (group membership requires logout)
+2. Check ROCm: `rocminfo | grep "Marketing Name"`
+3. Check HIP: `/opt/rocm/bin/hipconfig --version`
+4. Verify group membership: `groups` (should show `render` and `video`)
+
+### Linux: Reverting to Original Python
+```bash
+UE_ROOT="/path/to/UE_5.7"
+
+# Find backup
+ls ${UE_ROOT}/Engine/Binaries/ThirdParty/Python3/ | grep backup
+
+# Restore
+rm -rf ${UE_ROOT}/Engine/Binaries/ThirdParty/Python3/Linux
+mv ${UE_ROOT}/Engine/Binaries/ThirdParty/Python3/Linux_backup_XXXXXXXX \
+   ${UE_ROOT}/Engine/Binaries/ThirdParty/Python3/Linux
+```
+
+See [LINUX_SETUP_CHANGES.md](LINUX_SETUP_CHANGES.md) for complete revert instructions.
 
 ## Why Python 3.12?
 
@@ -178,4 +317,4 @@ This setup script is provided as-is under MIT License. Unreal Engine itself is s
 
 ---
 
-*Last updated: 2026-01-19*
+*Last updated: 2026-01-24*
