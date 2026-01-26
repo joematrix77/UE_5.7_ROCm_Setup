@@ -224,22 +224,80 @@ else
 fi
 
 #############################################
-# STEP 6: USER GROUPS FOR ROCm
+# STEP 6: CREATE EDITOR LAUNCHER SCRIPT
+#############################################
+
+log_step "6/11 Creating UnrealEditor launcher script..."
+
+UE_EDITOR_DIR="${UE_ROOT}/Engine/Binaries/Linux"
+LAUNCHER_SCRIPT="${UE_EDITOR_DIR}/UnrealEditor.sh"
+
+# Create launcher script that ensures UE's Python is loaded instead of system Python
+cat > "$LAUNCHER_SCRIPT" << 'LAUNCHER_EOF'
+#!/bin/bash
+#
+# UE 5.7 Editor Launcher with Python 3.12 support
+#
+# This script ensures UE's embedded Python is loaded instead of system Python
+# Created by LinuxROCmSetup.sh
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# UE's Python paths
+UE_PYTHON_ROOT="$UE_ROOT/Engine/Binaries/ThirdParty/Python3/Linux"
+UE_PYTHON_LIB="$UE_PYTHON_ROOT/lib"
+UE_PYTHON_SO="$UE_PYTHON_LIB/libpython3.12.so.1.0"
+
+# CRITICAL: Use LD_PRELOAD to force UE's Python library to load first
+# This overrides RPATH and system library paths, preventing the system
+# Python 3.12 from being loaded instead of UE's Python 3.12
+if [[ -f "$UE_PYTHON_SO" ]]; then
+    export LD_PRELOAD="$UE_PYTHON_SO${LD_PRELOAD:+:$LD_PRELOAD}"
+fi
+
+# Also prepend to LD_LIBRARY_PATH as backup
+export LD_LIBRARY_PATH="$UE_PYTHON_LIB:$LD_LIBRARY_PATH"
+
+# Set UE_PYTHON_DIR for UE's Python SDK detection
+export UE_PYTHON_DIR="$UE_PYTHON_ROOT"
+
+# Clear PYTHONHOME/PYTHONPATH - let UE handle Python initialization
+unset PYTHONHOME
+unset PYTHONPATH
+
+# ROCm paths
+if [[ -d /opt/rocm ]]; then
+    export ROCM_PATH=/opt/rocm
+    export HIP_PATH=/opt/rocm
+    export PATH="$PATH:/opt/rocm/bin"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/rocm/lib:/opt/rocm/lib64"
+fi
+
+# Launch the editor
+exec "$SCRIPT_DIR/UnrealEditor" "$@"
+LAUNCHER_EOF
+
+chmod +x "$LAUNCHER_SCRIPT"
+log_info "Created: $LAUNCHER_SCRIPT"
+
+#############################################
+# STEP 7: USER GROUPS FOR ROCm
 #############################################
 
 if [[ "$SKIP_ROCM" == false ]]; then
-    log_step "6/10 Adding user to render/video groups..."
+    log_step "7/11 Adding user to render/video groups..."
     sudo usermod -a -G render,video "$USER"
 else
-    log_step "6/10 Skipping user groups (--skip-rocm)"
+    log_step "7/11 Skipping user groups (--skip-rocm)"
 fi
 
 #############################################
-# STEP 7: ROCm REPOSITORY
+# STEP 8: ROCm REPOSITORY
 #############################################
 
 if [[ "$SKIP_ROCM" == false ]]; then
-    log_step "7/10 Setting up ROCm 7.2 repository..."
+    log_step "8/11 Setting up ROCm 7.2 repository..."
 
     sudo mkdir -p /etc/apt/keyrings
 
@@ -261,15 +319,15 @@ EOF
 
     sudo apt update
 else
-    log_step "7/10 Skipping ROCm repository (--skip-rocm)"
+    log_step "8/11 Skipping ROCm repository (--skip-rocm)"
 fi
 
 #############################################
-# STEP 8: ROCm INSTALL
+# STEP 9: ROCm INSTALL
 #############################################
 
 if [[ "$SKIP_ROCM" == false ]]; then
-    log_step "8/10 Installing ROCm packages..."
+    log_step "9/11 Installing ROCm packages..."
     sudo apt install -y \
         rocm-dev rocm-utils rocminfo rocm-smi \
         hipblas miopen-hip
@@ -284,15 +342,15 @@ EOF
 
     source /etc/profile.d/rocm.sh 2>/dev/null || true
 else
-    log_step "8/10 Skipping ROCm install (--skip-rocm)"
+    log_step "9/11 Skipping ROCm install (--skip-rocm)"
 fi
 
 #############################################
-# STEP 9: PIP + PYTORCH
+# STEP 10: PIP + PYTORCH
 #############################################
 
 if [[ "$SKIP_PYTHON" == false ]]; then
-    log_step "9/10 Installing pip and PyTorch..."
+    log_step "10/11 Installing pip and PyTorch..."
 
     "$UE_PYTHON" -m ensurepip --upgrade
     "$UE_PYTHON" -m pip install --upgrade pip setuptools wheel
@@ -307,14 +365,14 @@ if [[ "$SKIP_PYTHON" == false ]]; then
         numpy scipy pillow tqdm psutil pyyaml \
         transformers huggingface-hub
 else
-    log_step "9/10 Skipping pip/PyTorch (--skip-python)"
+    log_step "10/11 Skipping pip/PyTorch (--skip-python)"
 fi
 
 #############################################
-# STEP 10: VERIFICATION
+# STEP 11: VERIFICATION
 #############################################
 
-log_step "10/10 Verifying installation..."
+log_step "11/11 Verifying installation..."
 
 echo ""
 echo "--- Python ---"
@@ -361,5 +419,11 @@ echo "   ./GenerateProjectFiles.sh"
 echo ""
 echo "3. Build UE Editor:"
 echo "   make UnrealEditor-Linux-Development -j\$(nproc)"
+echo ""
+echo "4. Launch Editor using the wrapper script:"
+echo "   ${UE_EDITOR_DIR}/UnrealEditor.sh /path/to/YourProject.uproject"
+echo ""
+echo "   NOTE: Always use UnrealEditor.sh (not UnrealEditor directly)"
+echo "   to ensure UE's Python is loaded instead of system Python."
 echo ""
 echo "=========================================="

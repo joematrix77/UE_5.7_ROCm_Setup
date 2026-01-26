@@ -50,7 +50,35 @@ Engine/Binaries/.../lib/libpython3.12.so.1.0
     → Engine/Source/.../Linux/lib/libpython3.12.so (copied, not linked)
 ```
 
-### 4. UnrealUSDWrapper.Build.cs
+### 4. Editor Launcher Script (NEW)
+
+**Location:** `Engine/Binaries/Linux/UnrealEditor.sh`
+
+**Purpose:** Ensures UE's embedded Python 3.12 is loaded instead of the system Python.
+
+**Why it's needed:**
+
+When both UE's Python 3.12.8 and system Python 3.12.x are present, the dynamic linker may load the wrong library at runtime, causing `Py_InitializeFromConfig` to fail with "Python could not be initialized and was disabled".
+
+**How it works:**
+
+1. Sets `LD_PRELOAD` to force-load UE's `libpython3.12.so.1.0` before any other libraries
+2. Prepends UE's Python lib path to `LD_LIBRARY_PATH`
+3. Sets `UE_PYTHON_DIR` for UE's internal Python detection
+4. Clears `PYTHONHOME` and `PYTHONPATH` to prevent conflicts
+5. Adds ROCm paths if `/opt/rocm` exists
+
+**IMPORTANT:** Always use `UnrealEditor.sh` to launch the editor, not `UnrealEditor` directly:
+
+```bash
+# Correct
+./UnrealEditor.sh /path/to/Project.uproject
+
+# Wrong (may cause Python initialization failure)
+./UnrealEditor /path/to/Project.uproject
+```
+
+### 5. UnrealUSDWrapper.Build.cs
 
 **Location:** `Engine/Plugins/Runtime/USDCore/Source/UnrealUSDWrapper/UnrealUSDWrapper.Build.cs`
 
@@ -186,6 +214,34 @@ The library path is wrong. Ensure:
 2. Check ROCm: `rocminfo | grep "Marketing Name"`
 3. Check HIP: `/opt/rocm/bin/hipconfig --version`
 
+### "Python could not be initialized and was disabled"
+
+This error occurs when UE loads the system Python library instead of UE's embedded Python.
+
+**Solution:** Always use the launcher script:
+
+```bash
+# Use UnrealEditor.sh, NOT UnrealEditor
+./Engine/Binaries/Linux/UnrealEditor.sh /path/to/Project.uproject
+```
+
+**Why this happens:**
+
+When system Python 3.12 is installed (e.g., via `apt install python3.12`), the dynamic linker finds `/lib/x86_64-linux-gnu/libpython3.12.so.1.0` before UE's library. The launcher script uses `LD_PRELOAD` to force UE's library to load first.
+
+**Verify fix is working:**
+
+```bash
+# Should show UE's Python path
+ldd Engine/Plugins/Experimental/PythonScriptPlugin/Binaries/Linux/libUnrealEditor-PythonScriptPlugin.so | grep python
+
+# With LD_PRELOAD set (via launcher script):
+# libpython3.12.so.1.0 => /path/to/UE_5.7/Engine/Binaries/ThirdParty/Python3/Linux/lib/libpython3.12.so.1.0
+
+# Without LD_PRELOAD (wrong):
+# libpython3.12.so.1.0 => /lib/x86_64-linux-gnu/libpython3.12.so.1.0
+```
+
 ---
 
-*Document version: 2026-01-24*
+*Document version: 2026-01-26*
